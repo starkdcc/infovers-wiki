@@ -1,7 +1,13 @@
 name: Daily AI Article
+
 on:
+  workflow_dispatch:        # ✅ Allows manual run from Actions tab
+  push:
+    branches:
+      - main                 # ✅ Runs on every push to main branch
   schedule:
-    - cron: "0 9 * * *" # Runs every day at 9 AM UTC
+    - cron: "0 9 * * *"      # ✅ Runs every day at 9 AM UTC
+
 jobs:
   build:
     runs-on: ubuntu-latest
