@@ -1,7 +1,21 @@
 import openai
 import os
+import random
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
+
+topics = [
+    "History of the Internet",
+    "Quantum Computing",
+    "Ancient Egypt",
+    "Space Exploration",
+    "Artificial Intelligence",
+    "The Great Wall of China",
+    "Climate Change",
+    "Leonardo da Vinci",
+    "Blockchain Technology",
+    "Black Holes"
+]
 
 def generate_article(topic):
     prompt = f"""
@@ -46,7 +60,7 @@ def update_index():
 
 if __name__ == "__main__":
     os.makedirs("articles", exist_ok=True)
-    topic = "Alan Turing"  # You can change this or randomize topics
+    topic = random.choice(topics)
     text = generate_article(topic)
     save_article(topic, text)
     update_index()
