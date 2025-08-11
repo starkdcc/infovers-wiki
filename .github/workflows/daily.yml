@@ -1,26 +1,33 @@
 name: Daily AI Article
 
 on:
-  workflow_dispatch:        # ✅ Allows manual run from Actions tab
-  push:
-    branches:
-      - main                 # ✅ Runs on every push to main branch
   schedule:
-    - cron: "0 9 * * *"      # ✅ Runs every day at 9 AM UTC
+    - cron: "0 9 * * *"  # Runs every day at 9 AM UTC
+  workflow_dispatch:      # Allows manual run from Actions tab
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-      - run: pip install openai
-      - run: python generate_article.py
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install openai requests
+
+      - name: Run article generator
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      - run: |
+          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+        run: python generate_article.py
+
+      - name: Commit and push changes
+        run: |
           git config --global user.name "github-actions"
           git config --global user.email "actions@github.com"
           git add .
