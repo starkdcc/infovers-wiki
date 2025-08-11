@@ -1,66 +1,63 @@
-import openai
 import os
-import random
+import requests
+from openai import OpenAI
+from datetime import datetime
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Load API keys from environment variables
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+UNSPLASH_ACCESS_KEY = os.getenv("UNSPLASH_ACCESS_KEY")
 
-topics = [
-    "History of the Internet",
-    "Quantum Computing",
-    "Ancient Egypt",
-    "Space Exploration",
-    "Artificial Intelligence",
-    "The Great Wall of China",
-    "Climate Change",
-    "Leonardo da Vinci",
-    "Blockchain Technology",
-    "Black Holes"
-]
+client = OpenAI(api_key=OPENAI_API_KEY)
 
+# --- Step 1: Generate article text ---
 def generate_article(topic):
-    prompt = f"""
-    Write a detailed Wikipedia-style article about '{topic}'.
-    Include Introduction, History, Key Facts, and References.
-    Around 800 words, neutral tone.
-    """
-    response = openai.ChatCompletion.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
+    prompt = f"Write an informative 500-word Wikipedia-style article about {topic}."
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "You are a helpful and knowledgeable writer."},
+            {"role": "user", "content": prompt}
+        ],
         temperature=0.7
     )
-    return response.choices[0].message["content"]
+    return response.choices[0].message.content.strip()
 
-def save_article(topic, content):
-    filename = f"articles/{topic.lower().replace(' ', '-')}.html"
-    with open(filename, "w", encoding="utf-8") as f:
-        f.write(f"<h1>{topic}</h1>\n<p>{content}</p>")
-    return filename
+# --- Step 2: Get Unsplash image ---
+def get_unsplash_image(query):
+    url = f"https://api.unsplash.com/photos/random?query={query}&client_id={UNSPLASH_ACCESS_KEY}"
+    r = requests.get(url)
+    data = r.json()
+    return data["urls"]["regular"], data["user"]["name"], data["links"]["html"]
 
-def update_index():
-    articles = sorted(os.listdir("articles"))
-    links = [f'<li><a href="articles/{a}">{a.replace("-", " ").replace(".html", "").title()}</a></li>' for a in articles]
-    html = f"""
-    <!DOCTYPE html>
+# --- Step 3: Save to HTML file ---
+def save_article(topic, text, image_url, photographer, photographer_url):
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    filename = f"articles/{today}.html"
+
+    html_content = f"""
     <html>
     <head>
-      <title>InfoVerse AI</title>
-      <link rel="stylesheet" href="styles.css">
+        <title>{topic} - InfoVerse Wiki</title>
+        <link rel="stylesheet" href="../styles.css">
     </head>
     <body>
-      <h1>InfoVerse AI</h1>
-      <p>Your AI-powered encyclopedia.</p>
-      <ul>
-        {''.join(links)}
-      </ul>
+        <h1>{topic}</h1>
+        <img src="{image_url}" alt="{topic}" style="max-width:100%;">
+        <p><small>Photo by <a href="{photographer_url}" target="_blank">{photographer}</a> on Unsplash</small></p>
+        <article>{text.replace('\n', '<br>')}</article>
     </body>
     </html>
     """
-    with open("index.html", "w", encoding="utf-8") as f:
-        f.write(html)
 
-if __name__ == "__main__":
     os.makedirs("articles", exist_ok=True)
-    topic = random.choice(topics)
-    text = generate_article(topic)
-    save_article(topic, text)
-    update_index()
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(html_content)
+
+    print(f"Article saved to {filename}")
+
+# --- Main ---
+if __name__ == "__main__":
+    topic = "Latest AI News"
+    article_text = generate_article(topic)
+    image_url, photographer, photographer_url = get_unsplash_image("artificial intelligence")
+    save_article(topic, article_text, image_url, photographer, photographer_url)
